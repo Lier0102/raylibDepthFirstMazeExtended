@@ -1,2 +1,3 @@
-# raylibDepthFirstMazeExtended
-Little game in C, developed for raylib contest. April-2020
+# Maze
+Little game with C and raylib.
+Developed for raylib 32x32 contest. April 2020.
