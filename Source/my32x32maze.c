@@ -159,11 +159,6 @@ const int offsets8[8][2] = {
 	 1,  1
 };
 
-void GridClear(GRID *_grid) 
-{
-
-}
-
 GRID *GridCreate(int _width, int _height)
 {
 	GRID *_grid = (GRID*)malloc(sizeof(GRID));
@@ -705,7 +700,7 @@ void GridFloodVisibility(CELL *_cell, float _depth, float _timeStamp)
 	}
 	_depth -= 5 - _cell->neighborCount / 2;
 
-	// set cell as invisible
+	// set cell as visible
 	_cell->flags &= ~CFL_INVISIBLE;
 
 	// end by visibility blocking cells
