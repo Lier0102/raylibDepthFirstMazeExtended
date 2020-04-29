@@ -40,6 +40,7 @@
 
 #include "raylib.h"
 #include "raymath.h"
+#include <string.h> // memset
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
