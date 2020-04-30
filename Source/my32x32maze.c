@@ -171,6 +171,7 @@ GRID *GridCreate(int _width, int _height)
 	_grid->cellLast = _grid->cells + _grid->size - 1;
 	_grid->bonus = 0;
 
+	// set array member pointer offsets
 	for (int _dir = 0; _dir < 4; _dir += 1)
 	{
 		_grid->ptrOffsets4[_dir] = offsets4[_dir][0] + offsets4[_dir][1] * _grid->width;
@@ -179,6 +180,7 @@ GRID *GridCreate(int _width, int _height)
 	for (int _dir = 4; _dir < 8; _dir += 1)
 		_grid->ptrOffsets8[_dir] = offsets8[_dir][0] + offsets8[_dir][1] * _grid->width;
 
+	// set cell default values
 	for (int _index = 0; _index < _grid->size; _index += 1)
 	{
 		CELL *_cell = _grid->cells + _index;
@@ -243,15 +245,15 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 		if (_cellN3->type > UNVISITED)
 			continue;
 
-		// set as walkable
+		// set the nine cells as walkable
 		for (
-			struct { int xL; int y; int yL; int stepX; int stepY; } _sT =
+			struct { int y; int yL; int stepY; int xL; int stepX; } _sT =
 			{
-				_cell->posX + (offsets4[_s.dir][0] + offsets4[_dir2][0]) * 3,
 				_cell->posY,
 				_cell->posY + (offsets4[_s.dir][1] + offsets4[_dir2][1]) * 3,
-				SIGN(_cellN3->posX - _cell->posX),
-				SIGN(_cellN3->posY - _cell->posY)
+				SIGN(_cellN3->posY - _cell->posY),
+				_cell->posX + (offsets4[_s.dir][0] + offsets4[_dir2][0]) * 3,
+				SIGN(_cellN3->posX - _cell->posX)
 			};
 			_sT.y != _sT.yL; 
 			_sT.y += _sT.stepY
@@ -265,14 +267,14 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 				_cellT->type = _cellsToEnd;
 			}
 		}
-		if (0 < _count--)
+		if (0 < _count) // last room?
 		{
 			_cellsToEnd += 4;
 			int _room = GetRandomValue(0, 2);
 			switch (_room) {
-			case 0: GridMazeRoom(_grid, _cellN1, _cellsToEnd, _count); break;
-			case 1: GridMazeRoom(_grid, _cellN2, _cellsToEnd, _count); break;
-			case 2: GridMazeRoom(_grid, _cellN3, _cellsToEnd, _count); break;
+			case 0: GridMazeRoom(_grid, _cellN1, _cellsToEnd, _count - 1); break;
+			case 1: GridMazeRoom(_grid, _cellN2, _cellsToEnd, _count - 1); break;
+			case 2: GridMazeRoom(_grid, _cellN3, _cellsToEnd, _count - 1); break;
 			}
 		}
 		break;
@@ -676,11 +678,14 @@ void GridFloodVisibility(CELL *_cell, float _depth, float _timeStamp)
 	// end by depth
 	if (_depth < 0) {
 		_cell->depth = 0;
-		return;
+		if(_depth < -4)
+			return;
 	}
-
-	// set depth
-	_cell->depth = _depth;
+	else
+	{
+		// set depth
+		_cell->depth = _depth;
+	}
 	_depth -= 5 - _cell->neighborCount / 2;
 
 	// end by visibility blocking cells
@@ -768,7 +773,6 @@ typedef struct {
 	SOUND *current;
 	AudioStream stream;
 	float time;
-	struct MELODY *next;
 } MELODY;
 
 enum MelodyTypes
@@ -882,7 +886,6 @@ MELODY *MelodyCreate(float *_sndDesc)
 
 	_melody->stream = InitAudioStream(SND_SAMPLE_RATE, 16, 1);
 	_melody->time = 0;
-	_melody->next = NULL;
 
 	switch ((int)*_sndDesc)
 	{
@@ -915,7 +918,6 @@ MELODY *MelodyCreateHit(float *_sndDesc)
 
 	_melody->stream = InitAudioStream(SND_SAMPLE_RATE, 16, 1);
 	_melody->time = 0;
-	_melody->next = NULL;
 
 	_melody->first = SoundCreateHit(*(_sndDesc + 1), *(_sndDesc + 2));
 	_sndDesc += 3;
@@ -1320,7 +1322,7 @@ bool GameLoop(void)
 				if (_cellT->depth <= 0)
 					continue;
 				Color *_col = CellColors + (long)min(_cellT->type, LAST_COLOR);
-				_col->a = 255;// *_cellT->depth / MAZE_VISIBILITY_MAX;
+				_col->a = 255 * _cellT->depth / MAZE_VISIBILITY_MAX;
 				DrawRectangle(_x + _offX, _y + _offY, 1, 1, *_col);
 			}
 		}
