@@ -104,31 +104,33 @@ typedef struct
 
 enum CellTypes
 {
-	UNVISITED = 0,
-	WALL,
-	START,
-	END_TEMP,
-	END,
-	ROOMCENTER,
-	ROOMBORDER,
-	DOOR,
-	BONUS,
-	LAST_COLOR,
-	OPEN
+	CT_UNVISITED = 0,
+	CT_WALL,
+	CT_START,
+	CT_END_TEMP,
+	CT_END,
+	CT_ROOM_CENTER,
+	CT_ROOM_BORDER,
+	CT_DOOR,
+	CT_BONUS,
+	CT_MARK,
+	CT_LAST_COLOR,
+	CT_OPEN
 };
 
 Color CellColors[] =
 {
-	{ 255, 0, 0, 255 },
-	{ 110, 110, 110, 255 }, // WALL
-	{ 15, 15, 15, 255 }, // START
-	{ 255, 0, 255, 255 },
-	{ 0, 255, 0, 255 }, // END
-	{ 15, 15, 15, 255 }, // ROOM CENTER
-	{ 20, 20, 20, 255 }, // ROOM BORDER
-	{ 180, 120, 20, 255 }, // DOOR
-	{ 255, 255, 80, 255 }, // BONUS
-	{ 10, 10, 10, 255 }, // CORRIDORS
+	{ 255, 0,   0,   255 },
+	{ 110, 110, 110, 255 }, // CT_WALL
+	{ 15,  15,  15,  255 }, // CT_START
+	{ 255, 0,   0,   255 }, 
+	{ 0,   255, 0,   255 }, // CT_END
+	{ 15,  15,  15,  255 }, // CT_ROOM CENTER
+	{ 20,  20,  20,  255 }, // CT_ROOM BORDER
+	{ 180, 120, 20,  255 }, // CT_DOOR
+	{ 255, 255, 80,  255 }, // CT_BONUS
+	{ 0,   65,  128, 255 }, // CT_MARK
+	{ 10,  10,  10,  255 }, // CT_OPEN -> corridors
 };
 
 enum GridDirections {
@@ -155,11 +157,6 @@ const int offsets8[8][2] = {
 	 0,  1,
 	 1,  1
 };
-
-void GridClear(GRID *_grid)
-{
-
-}
 
 GRID *GridCreate(int _width, int _height)
 {
@@ -188,7 +185,7 @@ GRID *GridCreate(int _width, int _height)
 		_cell->index = _index;
 		_cell->posX = _index % _grid->width;
 		_cell->posY = _index / _grid->width;
-		_cell->type = UNVISITED;
+		_cell->type = CT_UNVISITED;
 		_cell->depth = 0;
 		_cell->timeStamp = 0;
 	}
@@ -204,9 +201,9 @@ void GridRemove(GRID *_grid)
 
 void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 {
-	if (_cell->type == END) // avoid ending cells
+	if (_cell->type == CT_END) // avoid ending cells
 		return;
-	if (_cell->type == END_TEMP)
+	if (_cell->type == CT_END_TEMP)
 		return;
 
 	// look for unvisited neighbors
@@ -225,7 +222,7 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 			continue;
 		if (_cellN1 > _grid->cellLast)
 			continue;
-		if (_cellN1->type > UNVISITED) 
+		if (_cellN1->type > CT_UNVISITED) 
 			continue;
 
 		int _dir2 = (_s.dir + _s.turn) % 4;
@@ -234,7 +231,7 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 			continue;
 		if (_cellN2 > _grid->cellLast)
 			continue;
-		if (_cellN2->type > UNVISITED)
+		if (_cellN2->type > CT_UNVISITED)
 			continue;
 
 		CELL *_cellN3 = _cell + (_grid->ptrOffsets4[_s.dir] + _grid->ptrOffsets4[_dir2]) * 2;
@@ -242,7 +239,7 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 			continue;
 		if (_cellN3 > _grid->cellLast)
 			continue;
-		if (_cellN3->type > UNVISITED)
+		if (_cellN3->type > CT_UNVISITED)
 			continue;
 
 		// set the nine cells as walkable
@@ -261,7 +258,7 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 			for (int _x = _cell->posX; _x != _sT.xL; _x += _sT.stepX)
 			{
 				CELL *_cellT = GETCELL(_grid, _x, _sT.y);
-				if (_cellT->type > START)
+				if (_cellT->type > CT_START)
 					continue;
 
 				_cellT->type = _cellsToEnd;
@@ -283,7 +280,7 @@ void GridMazeRoom(GRID *_grid, CELL *_cell, int _cellsToEnd, int _count)
 
 CELL *GridMaze(GRID *_grid) {
 	// prepare the grid for maze
-	// it states walkable cells as UNVISITED (0)
+	// it states walkable cells as CT_UNVISITED (0)
 	// walls pattern
 	// X X X X X X X 
 	// X 0 X 0 X 0 X
@@ -309,7 +306,7 @@ CELL *GridMaze(GRID *_grid) {
 			_sX.c < _sX.cL;
 			_sX.c += 1
 			) {
-			_sX.c->type = WALL;
+			_sX.c->type = CT_WALL;
 			_sX.c->depth = 0;
 		}
 	}
@@ -329,10 +326,10 @@ CELL *GridMaze(GRID *_grid) {
 			{
 				_sX.c = _sY.c,
 				_sX.cL = _sX.c + _grid->width,
-				WALL
+				CT_WALL
 			};
 			_sX.c < _sX.cL;
-			_sX.c += 1, _sX.t ^= WALL
+			_sX.c += 1, _sX.t ^= CT_WALL
 			) {
 			_sX.c->type = _sX.t;
 			_sX.c->depth = 0;
@@ -346,22 +343,22 @@ CELL *GridMaze(GRID *_grid) {
 		for (int _y = 1; _y < _grid->height; _y += 2) { // odd indexed cells
 			if (GetRandomValue(0, 1) > 0)
 				continue;
-			_grid->cells[_x + _y * _grid->width].type = WALL;
+			_grid->cells[_x + _y * _grid->width].type = CT_WALL;
 		}
 	}
 	for (int _y = 1; _y < _grid->height; _y += _grid->height - 3) { // two loops, up and down rows
 		for (int _x = 1; _x < _grid->width; _x += 2) { // odd indexed cells
 			if (GetRandomValue(0, 1) > 0)
 				continue;
-			_grid->cells[_x + _y * _grid->width].type = WALL;
+			_grid->cells[_x + _y * _grid->width].type = CT_WALL;
 		}
 	}
 
 	// random ending cell
 	// odd coordinates
 	CELL *_cellEnd = GETCELL(_grid, MAKEODD(GetRandomValue(3, _grid->width - 4)), MAKEODD(GetRandomValue(3, _grid->height - 4)));
-	_cellEnd->type = END;
-	int _cellsToEnd = OPEN;
+	_cellEnd->type = CT_END;
+	int _cellsToEnd = CT_OPEN;
 	CELL *_cell = _cellEnd;
 
 	while (1)
@@ -393,13 +390,13 @@ CELL *GridMaze(GRID *_grid) {
 			CELL *_cellN = _cell + _grid->ptrOffsets4[_dir] * 2;
 
 			// skip already visited cells
-			if (_cellN->type > UNVISITED) continue;
+			if (_cellN->type > CT_UNVISITED) continue;
 
 			// set next cell as walkable
-			_cellN->type = OPEN;
+			_cellN->type = CT_OPEN;
 
 			// set also the cell in the middle
-			(_cell + _grid->ptrOffsets4[_dir])->type = OPEN;
+			(_cell + _grid->ptrOffsets4[_dir])->type = CT_OPEN;
 
 			// save the stepped position
 			_cell = _cellN;
@@ -416,7 +413,7 @@ CELL *GridMaze(GRID *_grid) {
 
 		if (_attempts == 4) // if it could not find a walkable neighbor
 		{
-			if ((_cell->type != END) && (_cell->type != END_TEMP))  // not an end yet
+			if ((_cell->type != CT_END) && (_cell->type != CT_END_TEMP))  // not an end yet
 			{
 				// go back to an open cell
 				_cell->type = _cellsToEnd;
@@ -425,7 +422,7 @@ CELL *GridMaze(GRID *_grid) {
 				for (; _dir2 < 4; _dir2 += 1)
 				{
 					CELL *_cellN = _cell + _grid->ptrOffsets4[_dir2];
-					if (_cellN->type != OPEN)
+					if (_cellN->type != CT_OPEN)
 						continue;
 					_cellN->type = _cellsToEnd;
 					_cellsToEnd -= 1;
@@ -440,7 +437,7 @@ CELL *GridMaze(GRID *_grid) {
 			else // end reached
 			{
 				// set temporary ending cells as a common walkable cell
-				if (_cell->type == END_TEMP)
+				if (_cell->type == CT_END_TEMP)
 					_cell->type = _cellsToEnd;
 
 				// Look for unvisited cells
@@ -451,7 +448,7 @@ CELL *GridMaze(GRID *_grid) {
 					for (; _x < _grid->width; _x += 2)
 					{
 						CELL *_cellT = GETCELL(_grid, _x, _y);
-						if (_cellT->type != UNVISITED) // avoid already visited cells
+						if (_cellT->type != CT_UNVISITED) // avoid already visited cells
 							continue;
 						CELL *_cellN = NULL;
 						// check visited neighbors
@@ -465,7 +462,7 @@ CELL *GridMaze(GRID *_grid) {
 							if (_nextY < 0) continue;
 							if (_nextY >= _grid->height) continue;
 							_cellN = GETCELL(_grid, _nextX, _nextY);
-							if (_cellN->type > OPEN)
+							if (_cellN->type > CT_OPEN)
 								break;
 						}
 						if (_dir2 != 4)  // walkable neighbor found
@@ -476,7 +473,7 @@ CELL *GridMaze(GRID *_grid) {
 
 							// start a new path
 							_cell = _cellT;
-							_cell->type = END_TEMP; // set as a temporary end cell
+							_cell->type = CT_END_TEMP; // set as a temporary end cell
 							_cellsToEnd = _cellN2->type + 1; // one step further for next cells
 							break;
 						}
@@ -496,16 +493,16 @@ CELL *GridMaze(GRID *_grid) {
 		for (int _x = 3; _x < _grid->width - 3; _x += 2)
 		{
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < OPEN) // avoid special cells
+			if (_cell->type < CT_OPEN) // avoid special cells
 				continue;
 			for (int _dir = 0; _dir < 4; _dir += 1)
 			{
 				CELL *_cellN = _cell + _grid->ptrOffsets4[_dir] * 2;
-				if (_cellN->type < OPEN)
+				if (_cellN->type < CT_OPEN)
 					continue;
 				if (GetRandomValue(1, 100) <= MAZE_NEAR_PERCENT)
 					continue;
-				if (abs(_cellN->type - _cell->type) < 3) // the only working threshold is 6
+				if (abs(_cellN->type - _cell->type) < 3)
 					(_cell + _grid->ptrOffsets4[_dir])->type = (_cell->type + _cellN->type / 2);
 			}
 		}
@@ -517,18 +514,18 @@ CELL *GridMaze(GRID *_grid) {
 		for (int _x = 2; _x < _grid->width - 2; _x += 1)
 		{
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type != WALL)
+			if (_cell->type != CT_WALL)
 				continue;
 			int _cellsToEnd = 0;
 			int _dir = 0;
 			for (; _dir < 8; _dir += 1)
 			{
 				CELL *_cellN = _cell + _grid->ptrOffsets8[_dir];
-				if (_cellN->type < START)
+				if (_cellN->type < CT_START)
 					break;
-				if ((_cellN->type >= START) && (_cellN->type <= END)) // start and end are navigable cells that has no depth value as ID
-					if (_cellsToEnd < OPEN)
-						_cellsToEnd = OPEN;
+				if ((_cellN->type >= CT_START) && (_cellN->type <= CT_END)) // start and end are navigable cells that has no depth value as ID
+					if (_cellsToEnd < CT_OPEN)
+						_cellsToEnd = CT_OPEN;
 					else
 						_cellsToEnd += _cellsToEnd / (_dir + 1); // add the average of already found neighbors
 				else
@@ -559,23 +556,23 @@ CELL *GridMaze(GRID *_grid) {
 		}
 		if (_cellStart != NULL) break; // early break that ensures the starting cell is in the border of the maze
 	}
-	_cellStart->type = START;
+	_cellStart->type = CT_START;
 
 	// count neighbors and identify room centers
 	for (int _y = 1; _y < _grid->height - 1; _y += 1) {
 		for (int _x = 1; _x < _grid->width - 1; _x += 1) {
 			_cell = GETCELL(_grid, _x, _y);
 			_cell->neighborCount = 0;
-			if (_cell->type < START)
+			if (_cell->type < CT_START)
 				continue;
 			for (int _dir = 0; _dir < 8; _dir += 1) {
 				CELL *_cellN = _cell + _grid->ptrOffsets8[_dir];
-				if (_cellN->type < START)
+				if (_cellN->type < CT_START)
 					continue;
 				_cell->neighborCount += 1;
 			}
 			if (_cell->neighborCount == 8)
-				_cell->type = ROOMCENTER;
+				_cell->type = CT_ROOM_CENTER;
 		}
 	}
 
@@ -583,13 +580,13 @@ CELL *GridMaze(GRID *_grid) {
 	for (int _y = 1; _y < _grid->height - 1; _y += 1) {
 		for (int _x = 1; _x < _grid->width - 1; _x += 1) {
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < OPEN) // avoid any special cell
+			if (_cell->type < CT_OPEN) // avoid any special cell
 				continue;
 			for (int _dir = 0; _dir < 8; _dir += 1) {
 				CELL *_cellN = _cell + _grid->ptrOffsets8[_dir];
-				if (_cellN->type != ROOMCENTER)
+				if (_cellN->type != CT_ROOM_CENTER)
 					continue;
-				_cell->type = ROOMBORDER;
+				_cell->type = CT_ROOM_BORDER;
 				break;
 			}
 		}
@@ -599,13 +596,13 @@ CELL *GridMaze(GRID *_grid) {
 	for (int _y = 1; _y < _grid->height - 1; _y += 1) {
 		for (int _x = 1; _x < _grid->width - 1; _x += 1) {
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < OPEN) // avoid any special cell
+			if (_cell->type < CT_OPEN) // avoid any special cell
 				continue;
 			for (int _dir = 0; _dir < 4; _dir += 1) {
 				CELL *_cellN = _cell + _grid->ptrOffsets4[_dir];
-				if (_cellN->type != ROOMBORDER)
+				if (_cellN->type != CT_ROOM_BORDER)
 					continue;
-				_cell->type = DOOR;
+				_cell->type = CT_DOOR;
 				break;
 			}
 		}
@@ -615,14 +612,14 @@ CELL *GridMaze(GRID *_grid) {
 	for (int _y = 1; _y < _grid->height - 1; _y += 1) {
 		for (int _x = 1; _x < _grid->width - 1; _x += 1) {
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < OPEN) // avoid any special cell
+			if (_cell->type < CT_OPEN) // avoid any special cell
 				continue;
 			int _count = 0;
 			CELL *_cellCheapest = _cell;
 			int _dir = 0;
 			for (; _dir < 4; _dir += 1) {
 				CELL *_cellN = _cell + _grid->ptrOffsets4[_dir];
-				if (_cellN->type < OPEN)
+				if (_cellN->type < CT_OPEN)
 					continue;
 				_count += 1;
 				if (_cellN->type >= _cellCheapest->type)
@@ -631,7 +628,7 @@ CELL *GridMaze(GRID *_grid) {
 			}
 			if (_cell != _cellCheapest)
 				if (_count > 2)
-					_cellCheapest->type = DOOR;
+					_cellCheapest->type = CT_DOOR;
 		}
 	}
 
@@ -639,13 +636,13 @@ CELL *GridMaze(GRID *_grid) {
 	for (int _y = 1; _y < _grid->height - 1; _y += 2) {
 		for (int _x = 1; _x < _grid->width - 1; _x += 2) {
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < OPEN) // avoid special cells
+			if (_cell->type < CT_OPEN) // avoid special cells
 				continue;
 			if (_cell->neighborCount != 1)
 				continue;
-			if (GetRandomValue(1, 100) > MAZE_DEAD_BONUS_PERCENT)
+			if (GetRandomValue(0, 100) > MAZE_DEAD_BONUS_PERCENT)
 				continue;
-			_cell->type = BONUS;
+			_cell->type = CT_BONUS;
 			_grid->bonus += 1;
 		}
 	}
@@ -654,13 +651,13 @@ CELL *GridMaze(GRID *_grid) {
 	for (int _x = 1; _x < _grid->width - 1; _x += 1) {
 		for (int _y = 1; _y < _grid->height - 1; _y += 1) {
 			_cell = GETCELL(_grid, _x, _y);
-			if (_cell->type < ROOMCENTER) // avoid special cells
+			if (_cell->type < CT_ROOM_CENTER) // avoid special cells
 				continue;
-			if (_cell->type > ROOMBORDER) // avoid corridor cells
+			if (_cell->type > CT_ROOM_BORDER) // avoid corridor cells
 				continue;
-			if (GetRandomValue(1, 100) > MAZE_ROOM_BONUS_PERCENT)
+			if (GetRandomValue(0, 100) > MAZE_ROOM_BONUS_PERCENT)
 				continue;
-			_cell->type = BONUS;
+			_cell->type = CT_BONUS;
 			_grid->bonus += 1;
 		}
 	}
@@ -689,7 +686,7 @@ void GridFloodVisibility(CELL *_cell, float _depth, float _timeStamp)
 	_depth -= 5 - _cell->neighborCount / 2;
 
 	// end by visibility blocking cells
-	if ((_cell->type <= WALL) || (_cell->type == DOOR))
+	if ((_cell->type <= CT_WALL) || (_cell->type == CT_DOOR))
 		return;
 
 	// flood heighborhood
@@ -911,26 +908,6 @@ MELODY *MelodyCreate(float *_sndDesc)
 	return _melody;
 }
 
-MELODY *MelodyCreateHit(float *_sndDesc)
-{
-	MELODY *_melody = (MELODY*)malloc(sizeof(MELODY));
-	memset(_melody, 0, sizeof(MELODY));
-
-	_melody->stream = InitAudioStream(SND_SAMPLE_RATE, 16, 1);
-	_melody->time = 0;
-
-	_melody->first = SoundCreateHit(*(_sndDesc + 1), *(_sndDesc + 2));
-	_sndDesc += 3;
-	SOUND *_sndPrev = _melody->first;
-	for (; *_sndDesc != 0; _sndDesc += 3)
-	{
-		_sndPrev->next = SoundCreateHit(*(_sndDesc + 1), *(_sndDesc + 2));
-		_sndPrev = _sndPrev->next;
-	}
-	_sndPrev->next = NULL;
-	return _melody;
-}
-
 void MelodyRemove(MELODY *_melody)
 {
 	CloseAudioStream(_melody->stream);
@@ -1037,7 +1014,8 @@ float melodyHighDesc[] =
 	MELODY_TONE, MIDI_G5, 2.0f, 0.1f,
 	MELODY_TONE, MIDI_C5, 1.0f, 0.1f,
 	MELODY_TONE, MIDI_B4, 4.0f, 0.1f, // 7:8 syncope
-	0
+	
+    MELODY_END
 };
 
 float melodyHighEndDesc[] =
@@ -1051,7 +1029,8 @@ float melodyHighEndDesc[] =
 	MELODY_TONE, MIDI_E4, 0.5f, 0.3f,
 	MELODY_TONE, MIDI_G4, 0.5f, 0.3f,
 	MELODY_TONE, MIDI_C5, 4.0f, 0.3f,
-	0
+    
+    MELODY_END
 };
 
 float melodyBassDesc[] =
@@ -1071,7 +1050,8 @@ float melodyBassDesc[] =
 	MELODY_TONE, MIDI_F2, 1.6f, 0.7f,
 	MELODY_TONE, MIDI_B2, 1.4f, 0.7f,
 	MELODY_TONE, MIDI_E3, 1.0f, 0.5f,
-	0
+    
+    MELODY_END
 };
 
 float melodyBassEndDesc[] =
@@ -1080,7 +1060,8 @@ float melodyBassEndDesc[] =
 	MELODY_TONE, MIDI_F1a, 1.4f, 0.5f,
 	MELODY_TONE, MIDI_G1, 1.0f, 0.5f,
 	MELODY_TONE, MIDI_A2, 4.0f, 0.7f,
-	0
+    
+    MELODY_END
 };
 
 float melodyClaveDesc[] =
@@ -1090,7 +1071,8 @@ float melodyClaveDesc[] =
 	MELODY_HIT, 0, 0.555f, 0.15f,
 	MELODY_HIT, 0, 0.370f, 0.07f,
 	MELODY_HIT, 0, 0.750f, 0.10f,
-	0
+    
+    MELODY_END
 };
 
 float melodyClaveEndDesc[] =
@@ -1106,13 +1088,15 @@ float melodyBonusDesc[] =
 	MELODY_TONE, MIDI_A4, 0.2f, 0.3f,
 	MELODY_TONE, MIDI_B4, 0.2f, 0.4f,
 	MELODY_TONE, MIDI_C5a, 1.0f, 0.5f,
-	0
+    
+    MELODY_END
 };
 
 float melodyOpenDesc[] =
 {
 	MELODY_NOISE, 0, 2.0f, 0.25f,
-	0
+    
+    MELODY_END
 };
 
 // melodies
@@ -1164,7 +1148,6 @@ void GameInit(void)
 		gMelodyBonus = MelodyCreate(melodyBonusDesc);
 		gMelodyOpen = MelodyCreate(melodyOpenDesc);
 	}
-
 }
 
 void GameReset(void)
@@ -1218,14 +1201,15 @@ void Move(int _dir, float *_speed, float _timeStep)
 {
 	*_speed += _timeStep;
 	CELL *_cell = gCell + gGrid->ptrOffsets4[_dir];
-	if (_cell->type <= WALL)
-		return;
 	if (*_speed > MOVE_STEP)
 	{
 		*_speed -= MOVE_STEP;
+        if (_cell->type <= CT_WALL)
+            return;
+        
 		switch (_cell->type)
 		{
-		case DOOR:
+		case CT_DOOR:
 		{
 			if (IsAudioDeviceReady())
 			{
@@ -1233,22 +1217,22 @@ void Move(int _dir, float *_speed, float _timeStep)
 				MelodyPlay(gMelodyOpen, _timeStep);
 			}
 
-			_cell->type = OPEN;
+			_cell->type = CT_OPEN;
 		} break;
 
-		case BONUS:
+		case CT_BONUS:
 		{
 			if (IsAudioDeviceReady())
 			{
 				MelodyStop(gMelodyBonus);
 				MelodyPlay(gMelodyBonus, _timeStep);
 			}
-			_cell->type = OPEN;
+			_cell->type = CT_OPEN;
 			gBonus += 1;
 			gCell = _cell;
 		} break;
 
-		case END:
+		case CT_END:
 		{
 			if (gBonus == gGrid->bonus)
 				gState = GAME_WIN;
@@ -1306,6 +1290,14 @@ bool GameLoop(void)
 			Move(GRID_LEFT, &_speed, _timeStep);
 		else
 			_speed = MOVE_STEP;
+        
+        if(IsKeyPressed(KEY_SPACE))
+        {
+            if (gCell->type == CT_MARK)
+                gCell->type = CT_OPEN;
+            else if ((gCell->type >= CT_OPEN) || (gCell->type == CT_ROOM_CENTER) || (gCell->type == CT_ROOM_BORDER))
+                gCell->type = CT_MARK;
+        }
 
 		// maze
 		int _offX = 15 - gCell->posX;
@@ -1321,19 +1313,19 @@ bool GameLoop(void)
 				CELL *_cellT = GETCELL(gGrid, _x, _y);
 				if (_cellT->depth <= 0)
 					continue;
-				Color *_col = CellColors + (long)min(_cellT->type, LAST_COLOR);
+				Color *_col = CellColors + (long)min(_cellT->type, CT_LAST_COLOR);
 				_col->a = 255 * _cellT->depth / MAZE_VISIBILITY_MAX;
 				DrawRectangle(_x + _offX, _y + _offY, 1, 1, *_col);
 			}
 		}
 
 		// bonus bar
-		CellColors[BONUS].a = 255;
+		CellColors[CT_BONUS].a = 255;
 		int _bonus = gBonus * 30 / gGrid->bonus;
 		if (gHudBlink > 0)
 		{
 			if ((int)gHudBlink % 2 < 1)
-				DrawRectangle(31, 0, 1, 32 - _bonus, CellColors[BONUS]);
+				DrawRectangle(31, 0, 1, 32 - _bonus, CellColors[CT_BONUS]);
 			else
 				DrawRectangle(31, 0, 1, 32 - _bonus, RED);
 			gHudBlink -= GetFrameTime() * 5.0f;
@@ -1344,10 +1336,10 @@ bool GameLoop(void)
 		}
 		if (gBonus > 0)
 		{
-			DrawRectangle(31, 31 - _bonus, 1, _bonus, CellColors[BONUS]);
-			DrawRectangle(31, 31, 1, 1, CellColors[BONUS]);
+			DrawRectangle(31, 31 - _bonus, 1, _bonus, CellColors[CT_BONUS]);
+			DrawRectangle(31, 31, 1, 1, CellColors[CT_BONUS]);
 			if (gBonus == gGrid->bonus)
-				DrawRectangle(31, 0, 1, 1, CellColors[BONUS]);
+				DrawRectangle(31, 0, 1, 1, CellColors[CT_BONUS]);
 		}
 
 		// player
@@ -1469,7 +1461,7 @@ bool GameLoop(void)
 int main(void) {
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_UNDECORATED);
-	InitWindow(windowWidth, windowHeight, "Random Maze");
+	InitWindow(windowWidth, windowHeight, "Random Depth First Maze");
 
 	windowWidth = GetScreenWidth();
 	windowHeight = GetScreenHeight();
@@ -1516,24 +1508,22 @@ int main(void) {
 		EndTextureMode();
 
 		// Draw render texture to window, properly scaled
-		int _x = (windowWidth - renderWidth) / 2.0f;
-		int _y = (windowHeight - renderHeight) / 2.0f;
 		DrawTexturePro(
 			target.texture,
 			(Rectangle) {
-			0, 0,
+				0, 0,
 				(float)target.texture.width, (float)-target.texture.height
-		},
+			},
 			(Rectangle) {
-			_renderX, _renderY,
+				_renderX, _renderY,
 				(float)gameScreenWidth*scale, (float)gameScreenHeight*scale
-		},
-				(Vector2) {
+			},
+			(Vector2) {
 				0, 0
 			},
-				0.0f,
-					WHITE
-					);
+			0.0f,
+			WHITE
+		);
 
 		// Draw the grid like "stencil" is drawn over the squares to make them look not at all like LEDs!
 		for (int x = -1; x < renderWidth; x += 16) DrawRectangle(x + _renderX, _renderY, 2, renderHeight, BLACK);
